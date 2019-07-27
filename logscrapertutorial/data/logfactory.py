@@ -18,7 +18,7 @@ from logscrapertutorial.utils import repeatfunc
 
 
 class FakeNestedMetaDataFactory(factory.DictFactory):
-    datetime = factory.Faker('date_this_month')
+    datetime = factory.Faker('date_time_this_month')
     uuid = factory.Faker('uuid4')
     state = factory.Faker('state_abbr')
 

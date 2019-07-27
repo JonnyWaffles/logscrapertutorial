@@ -112,3 +112,8 @@ def test_pluck_state():
     data = FakeDictEntryFactory(nestedmetadata__state='VA')
     assert pluck_state(data) == 'VA'
     assert pluck_state_name(data) == 'Virginia'
+
+
+"""
+Alright, so we've got a silly functional pipe. Let's get crazier.
+"""
