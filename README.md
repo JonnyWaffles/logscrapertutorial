@@ -19,3 +19,7 @@ Currently a work in progress!
 Clone down the repository and install the requirements with
 `pip install -r requirements.txt`
 Run the lessons and inspect the source!
+
+## Credits
+Shoutout to David Beazley and his [presentation](http://www.dabeaz.com/coroutines/Coroutines.pdf)
+for inspiring me to work this article just to understand his work!
