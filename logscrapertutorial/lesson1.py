@@ -70,7 +70,7 @@ decoded_dictionaries = [json.loads(line) for line in text_content.split('\n') if
 assert len(decoded_dictionaries) == 3
 
 """"
-That works, but the approach is suboptimal. Consider, we must load the entire text file
+That works too, but the approach is suboptimal. Consider, we must load the entire text file
 in to memory. What if we wanted to process each object at time? What if the text file
 was continuously being appended by another process? Head over to lesson 2 where we get crazy.
 """
