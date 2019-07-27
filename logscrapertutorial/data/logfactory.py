@@ -5,7 +5,7 @@ Factoryboy is a super fun API to easily instantiate realistic fake data.
 You don't need to understand how it works for this tutorial.
 """
 import json
-from collections import namedtuple, deque
+from collections import deque
 from functools import partial
 from pathlib import Path
 from typing import Union
@@ -16,39 +16,28 @@ import factory
 from logscrapertutorial.data import DATA_DIRECTORY, fake
 from logscrapertutorial.utils import repeatfunc
 
-#: Namedtuple to hold the first level of key values for our json objects.
-FakeLogEntryObject = namedtuple('FakeLogEntryObject', 'resource user nestedmetadata')
 
-#: Namedtuple to hold key values nested under :attr:`FakeLogEntryObject.nestedmetadata`
-FakeNestedMetaData = namedtuple('FakeNestedMetaData', 'datetime uuid')
-
-
-class FakeNestedMetaDataFactory(factory.Factory):
-    class Meta:
-        model = FakeNestedMetaData
-
+class FakeNestedMetaDataFactory(factory.DictFactory):
     datetime = factory.Faker('date_this_month')
     uuid = factory.Faker('uuid4')
+    state = factory.Faker('state_abbr')
 
 
-class FakeLogWrapperFactory(factory.Factory):
-    class Meta:
-        model = FakeLogEntryObject
-
+class FakeDictEntryFactory(factory.DictFactory):
     resource = factory.Faker('uri')
     user = factory.Faker('user_name')
     nestedmetadata = factory.SubFactory(FakeNestedMetaDataFactory)
 
 
 # noinspection PyMethodParameters
-class FakeLogRecordFactory(FakeLogWrapperFactory):
+class FakeLogRecordFactory(FakeDictEntryFactory):
     @factory.PostGeneration
-    def write_log_record(obj: FakeLogEntryObject, create, extracted, **kwargs):
+    def write_log_record(obj: dict, create, extracted, **kwargs):
         filename = Path(extracted) if extracted else make_file_name_path()
         path: Path = DATA_DIRECTORY / filename
         if path.exists():
             with path.open('a') as file:
-                jsonstr = json.dumps(obj._asdict())
+                jsonstr = json.dumps(obj)
                 file.write(f'{jsonstr}\n')
 
 
