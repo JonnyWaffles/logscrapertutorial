@@ -12,7 +12,6 @@ class DateTimeEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, datetime) or isinstance(o, date):
             return o.isoformat()
-
         return super(o)
 
 
