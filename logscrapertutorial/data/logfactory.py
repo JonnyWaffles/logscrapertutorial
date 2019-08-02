@@ -77,3 +77,8 @@ def delete_data_files() -> int:
     delete_all = map(lambda p: p.unlink(), to_remove)
     deque(delete_all, maxlen=0)
     return len(to_remove)
+
+
+def get_file_path_by_name(name: Union[str, Path]) -> Path:
+    """Shortcut to get a file by name or stem path."""
+    return DATA_DIRECTORY / Path(name)
