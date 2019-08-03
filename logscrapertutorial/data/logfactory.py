@@ -46,7 +46,7 @@ def make_file_name_path():
     return Path(f'{uuid4().hex}.blob')
 
 
-def create_fake_log(filename: Union[str, Path] = None, number_of_rows: int = None):
+def create_fake_log(filename: Union[str, Path] = None, number_of_rows: int = None) -> Path:
     """Creates a fake log in the data directory whose name is :attr:`filename`
     with a row count of :attr:`number_of_rows`.
 
@@ -66,6 +66,7 @@ def create_fake_log(filename: Union[str, Path] = None, number_of_rows: int = Non
     factoryfunc = partial(FakeLogRecordFactory, write_log_record=path)
     entry_generator = repeatfunc(factoryfunc, number_of_rows)
     deque(entry_generator, maxlen=0)
+    return path
 
 
 def delete_data_files() -> int:

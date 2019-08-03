@@ -103,7 +103,7 @@ async def threadsafe_async_pipe(queue: Queue,  async_queue: asyncio.Queue, event
 async def async_queue_reader(async_queue: asyncio.Queue, event: Event):
     """Checks the async queue for a message and if it exists prints it
 
-    Think of this as our sink
+    Think of this as our sink.
 
     Args:
         async_queue:
