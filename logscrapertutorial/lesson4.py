@@ -114,3 +114,4 @@ def test_file_thread():
 
     for _ in range(queue.qsize()):
         logging.info(f'{queue.get()}')
+    delete_data_files()
