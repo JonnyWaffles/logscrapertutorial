@@ -115,3 +115,14 @@ def test_file_thread():
     for _ in range(queue.qsize()):
         logging.info(f'{queue.get()}')
     delete_data_files()
+
+
+"""
+We provided we can use coroutines to continuously read our files and send their data to a
+queue.
+
+Now, we'll build a new async thread running a routine which lands the Queued data
+in to an async queue so our various fake APIs can process it.
+
+todo!
+"""
