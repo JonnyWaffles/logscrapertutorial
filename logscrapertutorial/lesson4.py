@@ -54,7 +54,10 @@ def file_line_generator(path: Union[str, Path]):
     with open(path) as file:
         while True:
             line = file.readline()
-            logging.info(f'file_line_generator yield {line}')
+            # Once again for some unknown reason, we can view the
+            # yield mesage when pytest logs this line but not the
+            # actual content, however it does appear in the queue.
+            logging.info(f'file_line_generator yielding \n {line}')
             yield line
 
 
@@ -63,7 +66,8 @@ def file_reading_loop(coroutines, sink, end_event: Event):
     for coro in coroutines:
         tasks.put(coro)
     #  For some unknown reason this works as long as you don't observe it.
-    #  The debugger never makes it to this next line.
+    #  The debugger never makes it to this next line. But if we read the
+    #  queue after the thread runs the data is there!?
     msg = f'deque size: {tasks.qsize()} end_event_state: {end_event.is_set()}'
     logging.info(msg)
 
@@ -71,11 +75,22 @@ def file_reading_loop(coroutines, sink, end_event: Event):
         task = tasks.get()
         line = next(task)
         if line:
+            # For some unknown reason I do not see this log is the live cli
+            # But we know when the thread ends the Queue has the data.
+            logging.info(f'Found line!  {line}')
             sink.send(line)
         tasks.put(task)
 
 
 def test_file_thread():
+    """
+    This test is odd. We know it works when we
+    examine the Queue after the thread runs, however
+    when we try to debug or inspect the code during runtime
+    we cannot view the values or hit break points. I'll
+    need to investigate this further, but we know it works
+    because the queue is full of records!
+    """
     delete_data_files()
     log1path = create_fake_log()
     log2path = create_fake_log()
@@ -93,4 +108,7 @@ def test_file_thread():
         time.sleep(5)
         end_event.set()
 
-    logging.info(f'Queue length is {queue.qsize()}')
+    assert not queue.empty()
+
+    for _ in range(queue.qsize()):
+        logging.info(f'{queue.get()}')
