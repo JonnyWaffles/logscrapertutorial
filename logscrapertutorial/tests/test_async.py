@@ -1,7 +1,9 @@
 import asyncio
+import logging
 import time
+from asyncio import QueueEmpty
 from logscrapertutorial.data import fake
-from queue import Queue
+from queue import Queue, Empty
 from threading import Thread, Event
 from concurrent.futures import ThreadPoolExecutor
 
@@ -61,7 +63,7 @@ def thread_producer(name: str, queue: Queue, event: Event):
     while True and not event.is_set():
         msg = f'{name} Thread: {fake.word()}'
         queue.put(msg)
-        time.sleep(1)
+        time.sleep(0.01)
 
 
 async def threadsafe_async_print(name: str, queue: Queue, event: Event):
@@ -88,9 +90,14 @@ async def threadsafe_async_pipe(queue: Queue,  async_queue: asyncio.Queue, event
         event: The kill event
     """
     while True and not event.is_set():
-        item = queue.get()
-        print(f"threadsafe_async_pipe received: {item}")
-        await async_queue.put(item)
+        try:
+            item = queue.get(block=False)
+            await async_queue.put(item)
+            logging.debug(f"threadsafe_async_pipe put: {item}")
+        except Empty:
+            pass
+        finally:
+            await asyncio.sleep(0)
 
 
 async def async_queue_reader(async_queue: asyncio.Queue, event: Event):
@@ -103,9 +110,27 @@ async def async_queue_reader(async_queue: asyncio.Queue, event: Event):
         event: Kill signal
     """
     while True and not event.is_set():
-        msg = await async_queue.get()
-        print(msg)
-        async_queue.task_done()
+        try:
+            """
+            This part was hard to get right.
+            First, you don't await get_nowait() unlike get(),
+            I guess this is because no wait assumes the value is immediately available or throws.
+            """
+            msg = async_queue.get_nowait()
+            logging.debug(f"async_queue_reader received: {msg}")
+            async_queue.task_done()
+        except QueueEmpty as err:
+            """
+            If our Queue is empty go back to sleep and check the event again.
+            """
+            pass
+        finally:
+            """
+            We always want to sleep so the shut down event is continuously checked.
+            """
+            await asyncio.sleep(0)
+    logging.debug('async_queue_reader shutting down!')
+    assert async_queue.empty()  # I am curious if this always passes.
 
 
 def async_consuming_thread(queue: Queue, end_event:  Event):
@@ -120,11 +145,12 @@ def async_consuming_thread(queue: Queue, end_event:  Event):
     # for some unknown implementation reason caused the below
     # add_tasks coroutine to never run and silently be skipped.
     async def add_tasks():
-        print('\n ADD TASKS RAN \n')
+        logging.debug('Async Consuming Thread Add Tasks Entered')
         async_queue = asyncio.Queue()  # The queue MUST be defined here prior to asyncio.run() being called.
         task1 = asyncio.create_task(threadsafe_async_pipe(queue, async_queue, end_event))
         task2 = asyncio.create_task(async_queue_reader(async_queue, end_event))
         await asyncio.gather(task1, task2)
+        logging.debug('Async consuming add tests done!')
 
     asyncio.run(add_tasks())
 
@@ -156,6 +182,18 @@ def test_asyncio_from_other_thread():
     assert queue.qsize() == 0
 
 
+def test_thread_producer():
+    queue = Queue()
+    end_event = Event()
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        executor.submit(thread_producer, 'firstthread', queue, end_event)
+
+        time.sleep(5)
+        end_event.set()
+    logging.log(logging.DEBUG, f'queue size is {queue.qsize()}')
+    assert not queue.empty()
+
+
 def test_multithreaded_async():
     """
     Let's get crazy. We're going to send messages from a thread to an event loop on another thread.
@@ -169,3 +207,4 @@ def test_multithreaded_async():
 
         time.sleep(10)
         end_event.set()
+        logging.info('End Event Triggered!')
