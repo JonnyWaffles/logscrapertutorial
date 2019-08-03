@@ -29,7 +29,6 @@ calls to various clients don't hold up each other!
 """
 import logging
 import time
-from collections import deque
 from pathlib import Path
 from queue import Queue
 from threading import Event
@@ -62,6 +61,9 @@ def file_line_generator(path: Union[str, Path]):
 
 
 def file_reading_loop(coroutines, sink, end_event: Event):
+    # Originally I tried using a deque object but the thread got cancelled
+    # and never made it to the msg or the loop.
+    # No idea why, but using a Queue instead seems to work!
     tasks = Queue()
     for coro in coroutines:
         tasks.put(coro)
