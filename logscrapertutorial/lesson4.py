@@ -273,6 +273,7 @@ def test_putting_it_all_together():
     our example log handler. Watch the logging
     in your console and you can see the data following through the system!
     """
+    delete_data_files()
     log1_path = create_fake_log()
     log2_path = create_fake_log()
 
@@ -293,3 +294,5 @@ def test_putting_it_all_together():
         executor.submit(start_async_thread, queue, [sub], end_event)
         time.sleep(10)
         end_event.set()
+
+    delete_data_files()
