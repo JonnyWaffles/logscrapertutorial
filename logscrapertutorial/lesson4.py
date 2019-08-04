@@ -296,3 +296,9 @@ def test_putting_it_all_together():
         end_event.set()
 
     delete_data_files()
+
+"""
+To keep the examples relatively simple we didn't attach any filters or transformation pipes between our
+broadcaster and our subscribers. You could imagine a system where either the broadcaster performed some sort
+of filtering, subscribers, or both. Additionally, you could chain broadcasters.
+"""

@@ -13,12 +13,14 @@ Each lesson takes the task a little bit further and explains why and how the cod
 Fake data for the lessons will be generated in the data package.
 
 ## Status
-Currently a work in progress!
+Lessons 1-4 are in a good first draft
 
 ## Instructions
 Clone down the repository and install the requirements with
 `pip install -r requirements.txt`
-Run the lessons and inspect the source!
+Run the lessons and inspect the source! I recommend using
+Pycharm with pytest support enabled so you can 
+click run on each example as you go through the lessons.
 
 ## Credits
 Shoutout to David Beazley and his [presentation](http://www.dabeaz.com/coroutines/Coroutines.pdf)
