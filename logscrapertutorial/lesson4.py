@@ -121,7 +121,7 @@ def test_file_thread():
 
 
 """
-We provided we can use coroutines to continuously read our files and send their data to a
+We proved we can use coroutines to continuously read our files and send their data to a
 queue.
 
 Now, we'll build a new async thread running a routine which lands the Queued data
