@@ -9,6 +9,13 @@ I hope others could benefit from this tutorial.
 ## Lessons
 Each lesson takes the task a little bit further and explains why and how the code is designed the way it is.
 
+1. Lesson 1 - Details how to read the json lines
+2. Lesson 2 - Shows to how compose functions to process the data
+3. Lesson 3 - Details how we can expand the functional pipe concept to create processing system from
+legacy co-routines.
+4. Lesson 4 - This is where we completely go off the rails and pass data from a dedicated I/O thread to
+an asyncio event loop for processing
+
 ## Data
 Fake data for the lessons will be generated in the data package.
 
