@@ -35,7 +35,7 @@ from pathlib import Path
 from queue import Queue, Empty
 from threading import Event
 from typing import Union
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 
 from logscrapertutorial.data import fake
 from logscrapertutorial.data.logfactory import create_fake_log, delete_data_files
@@ -198,47 +198,69 @@ def subscriber(end_point):
 """
 Let's test what we have so far!
 """
+async def logger_endpoint(data):
+    """A fake end point to simulate
+    network processing time or some other
+    async operation.
+    """
+    await asyncio.sleep(1)
+    logging.info(f'End point received: {data}')
 
 
-def test_single_thread_publish_subscribe():
-    sink_list = []
+def start_async_thread(queue: Queue, subscribers, end_event: Event):
+    """Starts our silly example Async loop.
 
-    async def logger_endpoint(data):
-        """A fake end point to simulate
-        network processing time or some other
-        async operation.
-        """
-        await asyncio.sleep(1)
-        logging.info(f'End point received: {data}')
-        sink_list.append(data)
+    Args:
+        queue: The threadsafe queue to connect to our pipe
+        subscribers:  The legacy :func:`subscriber` objects with their various callbacks attached.
+            These are the events that trigger when the
+        end_event: The trigger to shut down the loop.
+    """
+    logging.info('Start async thread entered')
 
-    queue = Queue()
-    for _ in range(20):
-        queue.put(fake.words())
-    end_event = Event()
-
-    async def add_tasks(runtime: int):
-        """
-        Args:
-            runtime: The time the app should run before we kill it
-        """
+    async def add_tasks():
+        logging.info('Start Async Thread Add Tasks Entered')
         async_queue = asyncio.Queue()
-        #  Create our coroutines
-        print_api_subscription = subscriber(logger_endpoint)
+        #  For our simple example we only have one producer, the
+        #  function listening for data from the thread and placing it on the async queue
         producing_coro = threadsafe_async_pipe(queue, async_queue, end_event)
-        broadcasting_coro = async_broadcaster([print_api_subscription], async_queue, end_event)
-        #  Schedule them on the loop as tasks
+        # Broadcast to all the subscribers
+        broadcasting_coro = async_broadcaster([*subscribers], async_queue, end_event)
+        #  Schedule our producer, and broadcaster (bound with handlers) on the loop as tasks
         producing_task = asyncio.create_task(producing_coro)
         broadcasting_task = asyncio.create_task(broadcasting_coro)
-
-        await asyncio.sleep(runtime)
-        end_event.set()
+        while not end_event.is_set():
+            # Check every second to see if the
+            # end event is triggered.
+            await asyncio.sleep(1)
         logging.info('End Event triggered awaiting shutdown.')
         await asyncio.gather(producing_task, broadcasting_task)
         logging.info('Shut down complete')
 
-    asyncio.run(add_tasks(1))
-    assert sink_list
+    asyncio.run(add_tasks())
+
+
+def test_single_thread_publish_subscribe():
+    """With pytest cli_log enabled you will see the end point log the data.
+
+    .. note::
+
+        Add ``log_cli=true`` and ``log_cli_level=INFO`` to the pytest.ini config
+        if you don't use the one included with the repo.
+    """
+    queue = Queue()
+    for _ in range(20):
+        queue.put(fake.words())
+    end_event = Event()
+    #  We'll use just one subscriber to keep it simple
+    sub = subscriber(logger_endpoint)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(start_async_thread, queue, [sub], end_event)
+        time.sleep(1)
+        end_event.set()
+
+    logging.info(queue.qsize())
 
 
 """
@@ -246,4 +268,28 @@ As you can see our single threaded example works. Now all we need to is put it a
 Run one thread that continuously reads files adding data to the thread safe queue,
 and another thread where our event loop processes the data.
 """
+def test_putting_it_all_together():
+    """This test wires the pieces together to create
+    our example log handler. Watch the logging
+    in your console and you can see the data following through the system!
+    """
+    log1_path = create_fake_log()
+    log2_path = create_fake_log()
 
+    gen1 = file_line_generator(log1_path)
+    gen2 = file_line_generator(log2_path)
+
+    queue = Queue()
+    end_event = Event()
+    file_thread_sink = queue_sink(queue)
+    #  Again we'll use just one async subscriber to keep it simple
+    #  But you could imagine supporting any number of end points.
+    sub = subscriber(logger_endpoint)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        # Starts up our thread which reads the files and submits their
+        # lines to the sink which then places them on the queue
+        executor.submit(file_reading_loop, (gen1, gen2), file_thread_sink, end_event)
+        executor.submit(start_async_thread, queue, [sub], end_event)
+        time.sleep(10)
+        end_event.set()

@@ -185,7 +185,7 @@ def test_asyncio_from_other_thread():
 def test_thread_producer():
     queue = Queue()
     end_event = Event()
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=1) as executor:
         executor.submit(thread_producer, 'firstthread', queue, end_event)
 
         time.sleep(5)
